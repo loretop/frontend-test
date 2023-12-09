@@ -1,7 +1,8 @@
 import { TextField, Box, CircularProgress, Paper, ListItem, ListItemButton, ListItemText} from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { useEffect, useState } from "react";
+import { DataGrid, GridColDef, GridEventListener } from "@mui/x-data-grid";
+import { ComponentProps, useEffect, useState } from "react";
 import {FixedSizeGrid, FixedSizeList, FixedSizeList as List, ListChildComponentProps} from "react-window";
+import PokemonCard from "./PokemonCard";
 
 
 
@@ -36,7 +37,7 @@ export function PokemonSearchBar() {
 }
 
 //Personalized hook to get Pokemon list
-export function useLoadPokemon() {
+export function useFetchPokemon() {
     const [nextPage, setNextPage] = useState('https://pokeapi.co/api/v2/pokemon');
     const [hasEnded, setHasEnded] = useState(false);
     const [results, setResults] = useState<BasicPokemon[]>([]);
@@ -45,14 +46,17 @@ export function useLoadPokemon() {
     useEffect(() => {
         const fetchData = async (next: string) => {
             try {
-                const response = await fetch(next);
-                const data = await response.json();
-                setResults((prevResults) => [...prevResults, ...data.results]);
-                setNextPage(data.next);
-                if (data.next === null) {
-                    setHasEnded(true);
-                    setStatus(PokeStatus.Success);
+                if (next) {
+                    const response = await fetch(next);
+                    const data = await response.json();
+                    setResults((prevResults) => [...prevResults, ...data.results]);
+                    setNextPage(data.next);
+                    if (data.next === null) {
+                        setHasEnded(true);
+                        setStatus(PokeStatus.Success);
+                    }
                 }
+
             } catch (error) {
                 setStatus(PokeStatus.Error);
                 console.error('Error fetching data:', error);
@@ -69,8 +73,8 @@ export function useLoadPokemon() {
 
 
 
-export default function PokemonList() {
-    const [result, status] = useLoadPokemon();
+export default function PokemonList({onPokemonClick}: PokemonListProps) {
+    const [result, status] = useFetchPokemon();
     const rows: ListPokemon[] = result.map((pokemon, index) => ({
         id: index + 1,
         name: formatPokemonString(pokemon.name),
@@ -81,11 +85,22 @@ export default function PokemonList() {
         {field: 'name', headerName: 'Pokemon', width: 900, hideable: false},
         {field: 'url', headerName: 'More info', width: 0}
     ]
-    console.log(status);
+
+    const handleClick: GridEventListener<'rowClick'> = (
+        params, // GridRowParams
+        event, // MuiEvent<React.MouseEvent<HTMLElement>>
+        details, // GridCallbackDetails
+      ) => {
+        const newApiUrl = params.row.url;
+    // Use a callback function to avoid potential infinite re-renders
+        onPokemonClick(newApiUrl);
+
+      };
+
     return (
         <div>
             {status === PokeStatus.Success && (
-                <Box sx={{ height: 'fit-content', width: '100%' }}>
+            <Box sx={{ height: 'fit-content', width: '100%' }}>
             <DataGrid
                 rows={rows}
                 columns={columns}
@@ -100,7 +115,7 @@ export default function PokemonList() {
                     url: false,
                 }}
                 pageSizeOptions={[10,20]}
-                //onRowClick={}
+                onRowClick={handleClick}
             />
             </Box>
             )}
@@ -113,6 +128,10 @@ export default function PokemonList() {
         </div>
     );
 }
+
+interface PokemonListProps {
+    onPokemonClick: (url : string) => void
+  }
 
 interface BasicPokemon {
     name: string

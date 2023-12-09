@@ -1,21 +1,119 @@
-import { Card, CardMedia } from "@mui/material";
-import { useState } from "react";
+import { Card, CardContent, CardMedia, Typography } from "@mui/material";
+import { SetStateAction, useEffect, useState } from "react";
+import { PokeStatus } from "./PokemonList";
 
 
+//Custom hook to fetch a Pokemon's info
+/* export function useGetPokemon(url : string)  {
+    //set empty Pokemon initially
+    const [pokemon, setPokemon] = useState<PokemonInfo | null>({
+        abilities: [{
+            ability: {
+                name: '',
+            },
+            is_hidden: false,
+        },],
+        name: '',
+        types: [{
+            slot: -1,
+            type: {
+                name: '',
+                url: '',
+            }
+        }],
+        sprites: {
+            other: {
+                'official-artwork': {
+                    front_default: '',
+                }
+            }
+        }
+    });
+    const [status, setStatus] = useState(PokeStatus.Loading);
+    useEffect(() => {
+        const fetchData = async () => {
+          try {
+            const response = await fetch(url);
+            const data = await response.json();
+            setPokemon(data);
+            setStatus(PokeStatus.Success);
+          } catch (error) {
+            console.log('Error connecting with PokeAPI');
+            setStatus(PokeStatus.Error);
+          }
+        };
 
-function PokemonCard() {
-    const [pokemonImgUrl, setPokemonImgUrl] = useState('https://external-preview.redd.it/e5zoQw-hgw-LCjdhC_4G8IAcHxex5pzda_BD_FPTcBY.png?width=960&crop=smart&auto=webp&s=23f9df250a8fe74763c3ba7cb8e46421e63cba2d');
+        fetchData();
+      }, [url]);
+    return [pokemon, status] as const;
+} */
+
+function PokemonCard( { pokemonData, pokemonStatus} : PokemonCardProps) {
     return(
-        <Card sx={{ maxWidth: 400, alignSelf: 'center', justifySelf: 'center'}}>
-            <CardMedia
-            sx={{height: 300}}
-            image={pokemonImgUrl}>
-            </CardMedia>
+        <Card sx={
+            { maxWidth: 400,
+            alignSelf: 'center',
+            justifySelf: 'center',
+            }}>
+
+            {pokemonStatus === PokeStatus.Success && (
+                <div>
+                    <CardMedia
+                    sx={{height: 300}}
+                    image={pokemonData.sprites.other['official-artwork'].front_default}>
+                    </CardMedia>
+
+                    <CardContent>
+                        <Typography gutterBottom variant="h4" component="div">
+                        It's {pokemonData.name}!
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                        <b>Name: </b> <br/>
+                        <b>Type: </b>
+
+                        </Typography>
+                    </CardContent>
+                </div>
+            )}
+            {pokemonStatus === PokeStatus.Loading && (
+                <div>
+                    <CardMedia
+                    sx={{height: 300}}
+                    image={"./assets/pokemon-who.webp"}>
+                    </CardMedia>
+
+                    <CardContent>
+                        <Typography gutterBottom variant="h4" component="div">
+                        Who's that Pokemon?
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                        <b>Name: </b> <br/>
+                        <b>Type: </b>
+
+                        </Typography>
+                    </CardContent>
+                </div>
+            )}
         </Card>
     )
 };
 
-interface PokemonInfo {
+interface PokemonUrl {
+    url: string
+}
+
+interface PokemonCardProps {
+    pokemonData: PokemonInfo
+    pokemonStatus: PokeStatus
+}
+
+export interface PokemonInfo {
+    abilities: {
+        ability: {
+            name: string
+        }
+        is_hidden: boolean
+    }[]
     name: string
     types: {
         slot: number
