@@ -6,7 +6,7 @@ import PokemonCard from "./PokemonCard";
 
 
 
-function formatPokemonString(str : string) {
+export function formatPokemonString(str : string) {
     const words = str.replace(/-/g, ' ').split(' ');
 
      // Capitalize each word
