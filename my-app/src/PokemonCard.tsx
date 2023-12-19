@@ -1,6 +1,6 @@
 import { Card, CardContent, CardMedia, Typography } from "@mui/material";
-import { SetStateAction, useEffect, useState } from "react";
-import { PokeStatus, formatPokemonString } from "./PokemonList";
+import { formatPokemonString } from "./PokemonList";
+import { PokeStatus } from "./App";
 
 //PokemonCard Component
 function PokemonCard( { pokemonData, pokemonStatus} : PokemonCardProps) {
@@ -40,7 +40,7 @@ function PokemonCard( { pokemonData, pokemonStatus} : PokemonCardProps) {
                 <div>
                     <CardMedia
                     sx={{height: 300}}
-                    image={"./assets/pokemon-who.webp"}>
+                    image={require('./assets/pokemon-who.webp')}>
                     </CardMedia>
 
                     <CardContent>
@@ -60,9 +60,6 @@ function PokemonCard( { pokemonData, pokemonStatus} : PokemonCardProps) {
     )
 };
 
-interface PokemonUrl {
-    url: string
-}
 
 interface PokemonCardProps {
     pokemonData: PokemonInfo

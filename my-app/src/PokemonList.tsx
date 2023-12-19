@@ -1,9 +1,7 @@
-import { TextField, Box, CircularProgress, Paper, ListItem, ListItemButton, ListItemText} from "@mui/material";
+import { TextField, Box, CircularProgress, FormControl, FormHelperText, Autocomplete, Stack} from "@mui/material";
 import { DataGrid, GridColDef, GridEventListener } from "@mui/x-data-grid";
-import { ComponentProps, useEffect, useState } from "react";
-import {FixedSizeGrid, FixedSizeList, FixedSizeList as List, ListChildComponentProps} from "react-window";
-import PokemonCard from "./PokemonCard";
-
+import { Fragment, useEffect, useState } from "react";
+import { PokeStatus } from "./App";
 
 
 export function formatPokemonString(str : string) {
@@ -18,27 +16,20 @@ export function formatPokemonString(str : string) {
   return finalWord;
 }
 
-export enum PokeStatus {
-    Loading,
-    Success,
-    Error,
-}
 
-interface PokeAPIResponse {
-    status: PokeStatus
-    error: any
-    data: any
-}
+//Create list of all Pokemon names from fetched BasicPokemon
+export function setPokemonList(pokeList : BasicPokemon[]) {
+    const pokeNames : string[] = [];
+    for (let pokemon of pokeList) {
 
-export function PokemonSearchBar() {
-    return (
-        <TextField fullWidth label="Search your Pokemon" id="searchBar" />
-    );
+        pokeNames.push(pokemon.name);
+    }
+    return pokeNames;
 }
 
 //Personalized hook to get Pokemon list
-export function useFetchPokemon() {
-    const [nextPage, setNextPage] = useState('https://pokeapi.co/api/v2/pokemon');
+export function useFetchPokemon(url : string) {
+    const [nextPage, setNextPage] = useState('');
     const [hasEnded, setHasEnded] = useState(false);
     const [results, setResults] = useState<BasicPokemon[]>([]);
     const [status, setStatus] = useState(PokeStatus.Loading);
@@ -46,15 +37,18 @@ export function useFetchPokemon() {
     useEffect(() => {
         const fetchData = async (next: string) => {
             try {
-                if (next) {
-                    const response = await fetch(next);
+                if (next != '') {
+                    const response = await fetch(next, {cache: "no-store"});
                     const data = await response.json();
-                    setResults((prevResults) => [...prevResults, ...data.results]);
                     setNextPage(data.next);
+                    setResults((prevResults) => [...prevResults, ...data.results]);
                     if (data.next === null) {
                         setHasEnded(true);
                         setStatus(PokeStatus.Success);
                     }
+                }
+                else {
+                    setNextPage(url);
                 }
 
             } catch (error) {
@@ -63,18 +57,58 @@ export function useFetchPokemon() {
             }
         };
 
-        if (nextPage && !hasEnded) {
+        if (!hasEnded) {
             fetchData(nextPage);
         }
     }, [nextPage, hasEnded]);
 
     return [results, status] as const;
+  }
+
+
+export function PokemonSearchBar(fetchedPokemon : BasicPokemon[]) {
+    const [search, setSearch] = useState('');
+    const [open, setOpen] = useState(false);
+    const [pokeNamesList, setPokeNamesList] = useState<string[]>([]);
+    const loading = open && pokeNamesList.length === 0;
+
+    useEffect(() => {
+        let active = true;
+
+        if(!loading) {
+            return undefined;
+        }
+
+    })
+
+    const pokeNames : string[] = [];
+    if(fetchedPokemon.length > 0) {
+        const pokeNames = setPokemonList(fetchedPokemon)
+    }
+
+
+    return (
+        <Autocomplete
+            disablePortal
+            id="pokemon-search-bar"
+            options={pokeNames}
+            sx={{ width: '100%' }}
+            renderInput={(params) => <TextField {...params} label="Search a Pokemon" />}
+        />
+    );
 }
 
 
-
-export default function PokemonList({onPokemonClick}: PokemonListProps) {
-    const [result, status] = useFetchPokemon();
+export default function PokemonList({onPokemonClick, onPokemonFetch}: PokemonListProps) {
+    const [result, status] = useFetchPokemon("https://pokeapi.co/api/v2/pokemon");
+    if (status == PokeStatus.Success) {
+        onPokemonFetch(result);
+    }
+    const namesList : string[] = [];
+    result.forEach(function (pokemon) {
+        namesList.push(formatPokemonString(pokemon.name));
+    })
+    console.log(namesList);
     const rows: ListPokemon[] = result.map((pokemon, index) => ({
         id: index + 1,
         name: formatPokemonString(pokemon.name),
@@ -88,52 +122,74 @@ export default function PokemonList({onPokemonClick}: PokemonListProps) {
 
     const handleClick: GridEventListener<'rowClick'> = (
         params, // GridRowParams
-        event, // MuiEvent<React.MouseEvent<HTMLElement>>
-        details, // GridCallbackDetails
       ) => {
         const newApiUrl = params.row.url;
     // Use a callback function to avoid potential infinite re-renders
         onPokemonClick(newApiUrl);
-
       };
-
     return (
         <div>
-            {status === PokeStatus.Success && (
             <Box sx={{ height: 'fit-content', width: '100%' }}>
-            <DataGrid
-                rows={rows}
-                columns={columns}
-                initialState={{
-                    pagination: {
-                        paginationModel: {
-                        pageSize: 10,
-                        },
-                    },
-                }}
-                columnVisibilityModel={{
-                    url: false,
-                }}
-                pageSizeOptions={[10,20]}
-                onRowClick={handleClick}
-            />
+                <Stack spacing={2}>
+                    {status === PokeStatus.Success && (
+                        <Fragment>
+                            <Autocomplete
+                                disablePortal
+                                freeSolo
+                                id="pokemon-search-bar"
+                                options={namesList}
+                                sx={{ width: '100%' }}
+                                renderInput={(params) => <TextField {...params} label="Search a Pokemon" />}
+                            />
+                            <DataGrid
+                                rows={rows}
+                                columns={columns}
+                                initialState={{
+                                    pagination: {
+                                        paginationModel: {
+                                        pageSize: 10,
+                                        },
+                                    },
+                                }}
+                                columnVisibilityModel={{
+                                    url: false,
+                                }}
+                                pageSizeOptions={[10,20]}
+                                onRowClick={handleClick}
+                            />
+                        </Fragment>
+                    )}
+                    {status === PokeStatus.Loading && (
+                        <Fragment>
+                            <Autocomplete
+                                disablePortal
+                                freeSolo
+                                disabled
+                                id="disabled-pokemon-search-bar"
+                                options={[]}
+                                renderInput={(params) => <TextField {...params} label="Search a Pokemon" />}
+                                sx={{ width: '100%' }}
+                            />
+                            <CircularProgress/>
+                        </Fragment>
+
+                    )}
+                    {status === PokeStatus.Error && (
+                        <p>Connection with PokeAPI failed!</p>
+                    )}
+                </Stack>
             </Box>
-            )}
-            {status === PokeStatus.Loading && (
-                <CircularProgress/>
-            )}
-            {status === PokeStatus.Error && (
-                <p>Connection with PokeAPI failed :c</p>
-            )}
         </div>
     );
 }
 
 interface PokemonListProps {
     onPokemonClick: (url : string) => void
-  }
+    onPokemonFetch: (pokemonList : BasicPokemon[]) => void
+}
 
-interface BasicPokemon {
+
+export interface BasicPokemon {
     name: string
     url: string
 }
@@ -141,13 +197,4 @@ interface BasicPokemon {
 interface ListPokemon {
     name:string
     id: number
-}
-
-interface PokemonTypes {
-
-}
-
-interface PokemonDetails {
-    name: string
-    iconLink: string
 }
