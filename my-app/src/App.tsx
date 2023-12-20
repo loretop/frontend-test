@@ -4,7 +4,7 @@ import './App.css';
 import Grid from '@mui/material/Grid';
 import { Stack } from '@mui/material';
 import  PokemonList from './PokemonList';
-import { PokemonSearchBar, BasicPokemon } from './PokemonList';
+import { BasicPokemon } from './PokemonList';
 import PokemonCard, { PokemonInfo } from './PokemonCard';
 
 export enum PokeStatus {

@@ -1,5 +1,5 @@
 import { TextField, Box, CircularProgress, FormControl, FormHelperText, Autocomplete, Stack} from "@mui/material";
-import { DataGrid, GridColDef, GridEventListener } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridEventListener, GridFilterModel, GridLogicOperator } from "@mui/x-data-grid";
 import { Fragment, useEffect, useState } from "react";
 import { PokeStatus } from "./App";
 
@@ -16,16 +16,6 @@ export function formatPokemonString(str : string) {
   return finalWord;
 }
 
-
-//Create list of all Pokemon names from fetched BasicPokemon
-export function setPokemonList(pokeList : BasicPokemon[]) {
-    const pokeNames : string[] = [];
-    for (let pokemon of pokeList) {
-
-        pokeNames.push(pokemon.name);
-    }
-    return pokeNames;
-}
 
 //Personalized hook to get Pokemon list
 export function useFetchPokemon(url : string) {
@@ -66,41 +56,13 @@ export function useFetchPokemon(url : string) {
   }
 
 
-export function PokemonSearchBar(fetchedPokemon : BasicPokemon[]) {
-    const [search, setSearch] = useState('');
-    const [open, setOpen] = useState(false);
-    const [pokeNamesList, setPokeNamesList] = useState<string[]>([]);
-    const loading = open && pokeNamesList.length === 0;
-
-    useEffect(() => {
-        let active = true;
-
-        if(!loading) {
-            return undefined;
-        }
-
-    })
-
-    const pokeNames : string[] = [];
-    if(fetchedPokemon.length > 0) {
-        const pokeNames = setPokemonList(fetchedPokemon)
-    }
-
-
-    return (
-        <Autocomplete
-            disablePortal
-            id="pokemon-search-bar"
-            options={pokeNames}
-            sx={{ width: '100%' }}
-            renderInput={(params) => <TextField {...params} label="Search a Pokemon" />}
-        />
-    );
-}
-
-
 export default function PokemonList({onPokemonClick, onPokemonFetch}: PokemonListProps) {
     const [result, status] = useFetchPokemon("https://pokeapi.co/api/v2/pokemon");
+    const [inputValue, setInputValue] = useState('');
+    const [filter, setFilter] = useState<GridFilterModel>({
+        items: [
+        ]
+    });
     if (status == PokeStatus.Success) {
         onPokemonFetch(result);
     }
@@ -108,7 +70,6 @@ export default function PokemonList({onPokemonClick, onPokemonFetch}: PokemonLis
     result.forEach(function (pokemon) {
         namesList.push(formatPokemonString(pokemon.name));
     })
-    console.log(namesList);
     const rows: ListPokemon[] = result.map((pokemon, index) => ({
         id: index + 1,
         name: formatPokemonString(pokemon.name),
@@ -121,7 +82,7 @@ export default function PokemonList({onPokemonClick, onPokemonFetch}: PokemonLis
     ]
 
     const handleClick: GridEventListener<'rowClick'> = (
-        params, // GridRowParams
+        params,
       ) => {
         const newApiUrl = params.row.url;
     // Use a callback function to avoid potential infinite re-renders
@@ -138,6 +99,15 @@ export default function PokemonList({onPokemonClick, onPokemonFetch}: PokemonLis
                                 freeSolo
                                 id="pokemon-search-bar"
                                 options={namesList}
+                                inputValue={inputValue}
+                                onInputChange={(event, newInputValue) => {
+                                    setFilter({
+                                        items: [
+                                            {id: 1, field: 'name', operator: 'startsWith', value: newInputValue}
+                                        ]
+                                    })
+                                    setInputValue(newInputValue);
+                                }}
                                 sx={{ width: '100%' }}
                                 renderInput={(params) => <TextField {...params} label="Search a Pokemon" />}
                             />
@@ -156,6 +126,9 @@ export default function PokemonList({onPokemonClick, onPokemonFetch}: PokemonLis
                                 }}
                                 pageSizeOptions={[10,20]}
                                 onRowClick={handleClick}
+                                filterModel={filter}
+                                onFilterModelChange={(newFilterModel) =>
+                                setFilter(newFilterModel)}
                             />
                         </Fragment>
                     )}
